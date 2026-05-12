@@ -131,6 +131,26 @@ function renderWorkspaceTree() {
   renderTree(state.tree, els.fileTree);
 }
 
+function loadWorkspace(workspace, message = "Workspace opened.") {
+  state.rootPath = workspace.rootPath;
+  state.tree = workspace.tree;
+  state.expanded = new Set([workspace.rootPath]);
+  state.currentFile = null;
+  state.currentExtension = null;
+  state.selectedPath = null;
+  els.workspaceLabel.textContent = workspace.rootPath;
+  els.fileName.textContent = "No file selected";
+  els.filePath.textContent = "Choose a .tex, .bib, .sty, or .cls file from the tree.";
+  setEditorValue("");
+  els.writingEditor.innerHTML = "";
+  els.saveFile.disabled = true;
+  els.compileFile.disabled = true;
+  els.foldTex.disabled = true;
+  setDirty(false);
+  renderWorkspaceTree();
+  setStatus(message);
+}
+
 function setEditorValue(content) {
   state.suppressChange = true;
   editor.setValue(content, -1);
@@ -416,23 +436,24 @@ async function openWorkspace() {
     const workspace = await window.texSidecar.openWorkspace();
     if (!workspace) return;
 
-    state.rootPath = workspace.rootPath;
-    state.tree = workspace.tree;
-    state.expanded = new Set([workspace.rootPath]);
-    state.currentFile = null;
-    state.currentExtension = null;
-    state.selectedPath = null;
-    els.workspaceLabel.textContent = workspace.rootPath;
-    els.fileName.textContent = "No file selected";
-    els.filePath.textContent = "Choose a .tex, .bib, .sty, or .cls file from the tree.";
-    setEditorValue("");
-    els.writingEditor.innerHTML = "";
-    els.saveFile.disabled = true;
-    els.compileFile.disabled = true;
-    els.foldTex.disabled = true;
-    setDirty(false);
-    renderWorkspaceTree();
-    setStatus("Workspace opened.");
+    loadWorkspace(workspace);
+  } catch (error) {
+    setStatus(error.message, true);
+  }
+}
+
+async function openInitialTarget() {
+  try {
+    const target = await window.texSidecar.initialTarget();
+    if (!target) return;
+
+    if (target.error) {
+      setStatus(`Could not open CLI target: ${target.error}`, true);
+      return;
+    }
+
+    loadWorkspace(target, target.filePath ? "Workspace opened from CLI argument." : "Folder opened from CLI argument.");
+    if (target.filePath) await openFile(target.filePath);
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -573,3 +594,5 @@ window.addEventListener("keydown", (event) => {
     compileFile();
   }
 });
+
+openInitialTarget();

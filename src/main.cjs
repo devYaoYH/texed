@@ -30,6 +30,7 @@ const TEXT_EXTENSIONS = new Set([
 ]);
 
 let mainWindow;
+let initialTargetPromise = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -79,6 +80,26 @@ async function pathExists(filePath) {
   } catch {
     return false;
   }
+}
+
+function cliTargetArg() {
+  const args = process.argv.slice(process.defaultApp ? 2 : 1);
+  return args.find((arg) => !arg.startsWith("-")) || null;
+}
+
+async function initialTarget() {
+  const targetArg = cliTargetArg();
+  if (!targetArg) return null;
+
+  const targetPath = path.resolve(process.cwd(), targetArg);
+  const stat = await fs.stat(targetPath);
+  const rootPath = stat.isDirectory() ? targetPath : path.dirname(targetPath);
+
+  return {
+    rootPath,
+    filePath: stat.isDirectory() ? null : targetPath,
+    tree: await readTree(rootPath)
+  };
 }
 
 async function readTree(rootPath, currentPath = rootPath) {
@@ -148,6 +169,16 @@ ipcMain.handle("workspace:open", async () => {
     rootPath,
     tree: await readTree(rootPath)
   };
+});
+
+ipcMain.handle("app:initialTarget", async () => {
+  if (!initialTargetPromise) {
+    initialTargetPromise = initialTarget().catch((error) => ({
+      error: error.message
+    }));
+  }
+
+  return initialTargetPromise;
 });
 
 ipcMain.handle("workspace:tree", async (_event, rootPath) => {

@@ -19,6 +19,13 @@ npm run dev
 
 Open `examples/sample`, select `main.tex`, edit, save, and click **Compile PDF**.
 
+To launch directly into a file or folder:
+
+```sh
+npm run dev -- examples/sample/main.tex
+npm run dev -- examples/sample
+```
+
 The app uses the local TeX installation through `latexmk`, so macOS users should install a TeX distribution such as TinyTeX, MacTeX, or BasicTeX before compiling documents.
 
 ## Package
