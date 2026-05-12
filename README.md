@@ -2,6 +2,13 @@
 
 A local desktop TeX editor with a collapsible workspace tree, side-by-side source editing, and generated PDF preview.
 
+## Editor Features
+
+- TeX syntax highlighting through the local Ace editor bundle.
+- Source and Writing modes for switching between full source and a softer drafting surface.
+- Folding for TeX document sections and repeated scaffolding commands such as `\usepackage{...}`.
+- A file tree refresh button for reloading sidebar contents after external file changes or PDF generation.
+
 ## Run Locally
 
 ```sh

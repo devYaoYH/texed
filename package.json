@@ -15,6 +15,7 @@
     "productName": "TeX Sidecar",
     "files": [
       "src/**/*",
+      "node_modules/ace-builds/src-min-noconflict/**/*",
       "package.json"
     ],
     "mac": {
@@ -24,5 +25,8 @@
   "devDependencies": {
     "electron": "^31.7.7",
     "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "ace-builds": "^1.44.0"
   }
 }

@@ -1,6 +1,9 @@
 \documentclass{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{xcolor}
 
 \title{TeX Sidecar Smoke Test}
 \author{Local editor preview}
@@ -17,5 +20,16 @@ save it, and compile to refresh the side-by-side PDF preview.
 \[
   E = mc^2
 \]
+
+\section{A Friendlier Drafting Flow}
+
+Writing mode folds repeated TeX scaffolding so the document feels closer to a
+normal writing surface. Expand a folded line whenever you want the exact source
+back under your hands.
+
+\subsection{Still TeX When You Need It}
+
+The source is always real TeX, so compiling still goes through the local
+LaTeX toolchain and produces a normal PDF.
 
 \end{document}

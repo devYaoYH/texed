@@ -29,7 +29,7 @@ body {
 }
 
 button,
-textarea {
+#editor {
   font: inherit;
 }
 
@@ -67,7 +67,7 @@ textarea {
   padding: 8px 4px;
 }
 
-.app-shell.sidebar-collapsed .text-button,
+.app-shell.sidebar-collapsed .sidebar .text-button,
 .app-shell.sidebar-collapsed .workspace-label,
 .app-shell.sidebar-collapsed .file-tree {
   display: none;
@@ -187,6 +187,36 @@ textarea {
   flex: none;
 }
 
+.segmented-control {
+  height: 36px;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+.segment {
+  min-width: 72px;
+  height: 34px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.segment:last-child {
+  border-right: 0;
+}
+
+.segment.active {
+  background: var(--ink);
+  color: #ffffff;
+}
+
 .icon-button,
 .text-button {
   height: 36px;
@@ -226,7 +256,8 @@ textarea {
 
 .icon-button:focus-visible,
 .text-button:focus-visible,
-textarea:focus-visible {
+.segment:focus-visible,
+#editor:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
@@ -253,19 +284,29 @@ button:disabled {
   background: var(--code-bg);
 }
 
-#editor {
+.ace_editor {
   width: 100%;
   height: 100%;
-  border: 0;
-  resize: none;
-  background: var(--code-bg);
-  color: var(--code-ink);
-  caret-color: #ffffff;
-  padding: 18px 20px;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 14px;
   line-height: 1.62;
-  tab-size: 2;
+}
+
+.ace_editor.ace_focus {
+  outline: none;
+}
+
+.ace_gutter-cell.ace_fold-widget {
+  cursor: pointer;
+}
+
+.ace_fold {
+  background: #dcebe8;
+  border: 1px solid #8bbab5;
+  border-radius: 4px;
+  color: var(--accent-strong);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  padding: 0 5px;
 }
 
 .preview-pane {

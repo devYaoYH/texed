@@ -26,7 +26,12 @@
             <div class="file-path" id="file-path">Open a folder, then choose a .tex file.</div>
           </div>
           <div class="actions">
-            <button class="icon-button" id="refresh-tree" title="Refresh file tree" aria-label="Refresh file tree">R</button>
+            <div class="segmented-control" aria-label="Editor mode">
+              <button class="segment active" id="source-mode" type="button">Source</button>
+              <button class="segment" id="writing-mode" type="button">Writing</button>
+            </div>
+            <button class="text-button" id="fold-tex" title="Fold TeX scaffolding" aria-label="Fold TeX scaffolding" disabled>Fold</button>
+            <button class="text-button" id="refresh-tree" title="Refresh file tree" aria-label="Refresh file tree">Refresh</button>
             <button class="text-button" id="save-file" disabled>Save</button>
             <button class="text-button primary" id="compile-file" disabled>Compile PDF</button>
           </div>
@@ -34,7 +39,7 @@
 
         <section class="split-view">
           <section class="editor-pane" aria-label="TeX editor">
-            <textarea id="editor" spellcheck="false" placeholder="Open a .tex file to start editing."></textarea>
+            <div id="editor" aria-label="TeX source editor"></div>
           </section>
           <section class="preview-pane" aria-label="PDF preview">
             <div class="preview-empty" id="preview-empty">
@@ -49,6 +54,11 @@
       </main>
     </div>
 
+    <script src="../../node_modules/ace-builds/src-min-noconflict/ace.js"></script>
+    <script src="../../node_modules/ace-builds/src-min-noconflict/ext-searchbox.js"></script>
+    <script src="../../node_modules/ace-builds/src-min-noconflict/mode-latex.js"></script>
+    <script src="../../node_modules/ace-builds/src-min-noconflict/theme-textmate.js"></script>
+    <script src="../../node_modules/ace-builds/src-min-noconflict/theme-one_dark.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>
