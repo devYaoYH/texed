@@ -14,22 +14,38 @@
 
 \section{Hello}
 
-This project is a quick sanity check for the local editor. Edit this file,
-save it, and compile to refresh the side-by-side PDF preview.
+This project is a quick sanity check for the local editor. Edit this file, save it, and compile to refresh the side-by-side PDF preview.
 
 \[
-  E = mc^2
+E = mc^2
 \]
 
 \section{A Friendlier Drafting Flow}
 
-Writing mode folds repeated TeX scaffolding so the document feels closer to a
-normal writing surface. Expand a folded line whenever you want the exact source
-back under your hands.
+Writing mode folds repeated TeX scaffolding so the document feels closer to a normal writing surface. Expand a folded line whenever you want the exact source back under your hands.
 
 \subsection{Still TeX When You Need It}
 
-The source is always real TeX, so compiling still goes through the local
-LaTeX toolchain and produces a normal PDF.
+The source is always real TeX, so compiling still goes through the local LaTeX toolchain and produces a normal PDF.
+
+\section{Artifacts}
+
+Figures and tables are still TeX underneath, but Writing mode can show them as editable document artifacts.
+
+\begin{figure}
+\centering
+\fbox{\rule{0pt}{1.2in}\rule{2.4in}{0pt}}
+\caption{A placeholder figure that does not require an external image file}
+\end{figure}
+
+\begin{table}
+\centering
+\begin{tabular}{lrr}
+Item & Count & Share \\
+Alpha & 12 & 40\% \\
+Beta & 18 & 60\% \\
+\end{tabular}
+\caption{Example data table}
+\end{table}
 
 \end{document}

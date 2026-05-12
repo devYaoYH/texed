@@ -7,6 +7,7 @@ A local desktop TeX editor with a collapsible workspace tree, side-by-side sourc
 - TeX syntax highlighting through the local Ace editor bundle.
 - Source and Writing modes for switching between full source and a softer drafting surface.
 - Writing mode hides common TeX scaffolding and shows editable title, author, date, headings, prose, and `$$ ... $$` math blocks.
+- Writing mode includes insert controls for text, sections, subsections, math, figures, and tables.
 - Source mode still supports folding for TeX document sections and repeated scaffolding commands such as `\usepackage{...}`.
 - A file tree refresh button for reloading sidebar contents after external file changes or PDF generation.
 

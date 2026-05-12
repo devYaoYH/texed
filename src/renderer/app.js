@@ -41,6 +41,7 @@ const els = {
   fileName: document.querySelector("#file-name"),
   filePath: document.querySelector("#file-path"),
   editorPane: document.querySelector(".editor-pane"),
+  writingToolbar: document.querySelector("#writing-toolbar"),
   writingEditor: document.querySelector("#writing-editor"),
   saveFile: document.querySelector("#save-file"),
   compileFile: document.querySelector("#compile-file"),
@@ -237,6 +238,30 @@ function parseTexForWriting(source) {
       continue;
     }
 
+    if (trimmed === "\\begin{figure}") {
+      flushParagraph();
+      const artifactLines = [];
+      index += 1;
+      while (index < lines.length && lines[index].trim() !== "\\end{figure}") {
+        artifactLines.push(lines[index]);
+        index += 1;
+      }
+      blocks.push(parseArtifactBlock("figure", artifactLines));
+      continue;
+    }
+
+    if (trimmed === "\\begin{table}") {
+      flushParagraph();
+      const artifactLines = [];
+      index += 1;
+      while (index < lines.length && lines[index].trim() !== "\\end{table}") {
+        artifactLines.push(lines[index]);
+        index += 1;
+      }
+      blocks.push(parseArtifactBlock("table", artifactLines));
+      continue;
+    }
+
     if (trimmed === "\\[") {
       flushParagraph();
       const mathLines = [];
@@ -263,6 +288,17 @@ function parseTexForWriting(source) {
   };
 }
 
+function parseArtifactBlock(type, lines) {
+  const captionIndex = lines.findIndex((line) => line.trim().startsWith("\\caption{"));
+  const caption = captionIndex >= 0 ? lines[captionIndex].trim().replace(/^\\caption\{/, "").replace(/\}$/, "") : "";
+  const body = lines.filter((_line, index) => index !== captionIndex).join("\n").trim();
+  return { type, caption, body };
+}
+
+function artifactText(block, fallbackCaption) {
+  return `${block.caption || fallbackCaption}\n---\n${block.body || ""}`.trimEnd();
+}
+
 function editableBlock(className, type, text) {
   const block = document.createElement("div");
   block.className = `writing-block ${className}`;
@@ -271,6 +307,15 @@ function editableBlock(className, type, text) {
   block.spellcheck = true;
   block.textContent = text;
   return block;
+}
+
+function blockElement(block) {
+  if (block.type === "section") return editableBlock("writing-section", "section", block.text);
+  if (block.type === "subsection" || block.type === "subsubsection") return editableBlock("writing-subsection", block.type, block.text);
+  if (block.type === "math") return editableBlock("writing-math", "math", `$$\n${block.text}\n$$`);
+  if (block.type === "figure") return editableBlock("writing-artifact writing-figure", "figure", artifactText(block, "Figure caption"));
+  if (block.type === "table") return editableBlock("writing-artifact writing-table", "table", artifactText(block, "Table caption"));
+  return editableBlock("writing-paragraph", "paragraph", block.text);
 }
 
 function renderWritingView(source) {
@@ -284,15 +329,7 @@ function renderWritingView(source) {
   );
 
   for (const block of state.texDraft.blocks) {
-    if (block.type === "section") {
-      els.writingEditor.append(editableBlock("writing-section", "section", block.text));
-    } else if (block.type === "subsection" || block.type === "subsubsection") {
-      els.writingEditor.append(editableBlock("writing-subsection", block.type, block.text));
-    } else if (block.type === "math") {
-      els.writingEditor.append(editableBlock("writing-math", "math", `$$\n${block.text}\n$$`));
-    } else {
-      els.writingEditor.append(editableBlock("writing-paragraph", "paragraph", block.text));
-    }
+    els.writingEditor.append(blockElement(block));
   }
 
   if (state.texDraft.blocks.length === 0) {
@@ -312,6 +349,14 @@ function mathFromWriting(text) {
   return math.trim();
 }
 
+function artifactFromWriting(text) {
+  const [captionPart, ...bodyParts] = text.split(/\n---\n/);
+  return {
+    caption: texEscapeHeading(captionPart || ""),
+    body: bodyParts.join("\n---\n").trim()
+  };
+}
+
 function blockToTex(block) {
   const type = block.dataset.type;
   const text = block.innerText.trim();
@@ -321,6 +366,14 @@ function blockToTex(block) {
   if (type === "subsection") return `\\subsection{${texEscapeHeading(text)}}`;
   if (type === "subsubsection") return `\\subsubsection{${texEscapeHeading(text)}}`;
   if (type === "math") return `\\[\n${mathFromWriting(text)}\n\\]`;
+  if (type === "figure") {
+    const artifact = artifactFromWriting(text);
+    return `\\begin{figure}\n${artifact.body}\n\\caption{${artifact.caption}}\n\\end{figure}`;
+  }
+  if (type === "table") {
+    const artifact = artifactFromWriting(text);
+    return `\\begin{table}\n${artifact.body}\n\\caption{${artifact.caption}}\n\\end{table}`;
+  }
   if (type === "paragraph") return text;
   return "";
 }
@@ -351,6 +404,64 @@ function writingToTex() {
     .join("\n\n");
 
   return `${preamble.trimEnd()}\n\n\\begin{document}\n\\maketitle\n\n${body}\n\n\\end{document}\n`;
+}
+
+function defaultBlock(type) {
+  if (type === "section") return { type, text: "New section" };
+  if (type === "subsection") return { type, text: "New subsection" };
+  if (type === "math") return { type, text: "a^2 + b^2 = c^2" };
+  if (type === "figure") {
+    return {
+      type,
+      caption: "Example figure caption",
+      body: "\\centering\n\\fbox{\\rule{0pt}{1.2in}\\rule{2.4in}{0pt}}"
+    };
+  }
+  if (type === "table") {
+    return {
+      type,
+      caption: "Example data table",
+      body: "\\centering\n\\begin{tabular}{lrr}\nItem & Count & Share \\\\\nAlpha & 12 & 40\\% \\\\\nBeta & 18 & 60\\% \\\\\n\\end{tabular}"
+    };
+  }
+  return { type: "paragraph", text: "New paragraph text." };
+}
+
+function selectedWritingBlock() {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return null;
+  const node = selection.anchorNode;
+  const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+  return element?.closest?.(".writing-block") || null;
+}
+
+function focusBlock(block) {
+  block.focus();
+  const range = document.createRange();
+  range.selectNodeContents(block);
+  range.collapse(false);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function insertWritingBlock(type) {
+  if (state.editorMode !== "writing" || state.currentExtension !== ".tex") {
+    setStatus("Switch to Writing mode on a .tex file before inserting blocks.", true);
+    return;
+  }
+
+  const block = blockElement(defaultBlock(type));
+  const selected = selectedWritingBlock();
+  if (selected && !["title", "author", "date"].includes(selected.dataset.type)) {
+    selected.after(block);
+  } else {
+    els.writingEditor.append(block);
+  }
+
+  focusBlock(block);
+  setDirty(true);
+  setStatus(`Inserted ${type} block.`);
 }
 
 function leadingCommand(line) {
@@ -566,6 +677,11 @@ els.sourceMode.addEventListener("click", () => setMode("source"));
 els.writingMode.addEventListener("click", () => setMode("writing"));
 els.saveFile.addEventListener("click", saveFile);
 els.compileFile.addEventListener("click", compileFile);
+els.writingToolbar.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-insert-block]");
+  if (!button) return;
+  insertWritingBlock(button.dataset.insertBlock);
+});
 
 els.toggleSidebar.addEventListener("click", () => {
   const collapsed = els.shell.classList.toggle("sidebar-collapsed");
