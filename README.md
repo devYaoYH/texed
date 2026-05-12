@@ -6,7 +6,8 @@ A local desktop TeX editor with a collapsible workspace tree, side-by-side sourc
 
 - TeX syntax highlighting through the local Ace editor bundle.
 - Source and Writing modes for switching between full source and a softer drafting surface.
-- Folding for TeX document sections and repeated scaffolding commands such as `\usepackage{...}`.
+- Writing mode hides common TeX scaffolding and shows editable title, author, date, headings, prose, and `$$ ... $$` math blocks.
+- Source mode still supports folding for TeX document sections and repeated scaffolding commands such as `\usepackage{...}`.
 - A file tree refresh button for reloading sidebar contents after external file changes or PDF generation.
 
 ## Run Locally
@@ -52,7 +53,7 @@ Flutter desktop is polished for native-feeling UI, but embedding a serious code 
 
 ## Good Next Upgrades
 
-- Replace the textarea with Monaco or CodeMirror for syntax highlighting, search, minimap, and diagnostics.
+- Add richer block editing in Writing mode for inserting sections, math, figures, and tables without touching raw TeX.
 - Add root-file detection from `% !TEX root = ...` comments.
 - Add file watching for automatic PDF refresh after external edits.
 - Parse `.log` output into clickable diagnostics.

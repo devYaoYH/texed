@@ -6,7 +6,9 @@ const state = {
   dirty: false,
   expanded: new Set(),
   selectedPath: null,
-  editorMode: "source"
+  editorMode: "source",
+  texDraft: null,
+  suppressChange: false
 };
 
 ace.config.set("basePath", "../../node_modules/ace-builds/src-min-noconflict");
@@ -38,6 +40,8 @@ const els = {
   workspaceLabel: document.querySelector("#workspace-label"),
   fileName: document.querySelector("#file-name"),
   filePath: document.querySelector("#file-path"),
+  editorPane: document.querySelector(".editor-pane"),
+  writingEditor: document.querySelector("#writing-editor"),
   saveFile: document.querySelector("#save-file"),
   compileFile: document.querySelector("#compile-file"),
   statusbar: document.querySelector("#statusbar"),
@@ -128,33 +132,205 @@ function renderWorkspaceTree() {
 }
 
 function setEditorValue(content) {
+  state.suppressChange = true;
   editor.setValue(content, -1);
   editor.clearSelection();
   editor.session.getUndoManager().reset();
+  state.suppressChange = false;
 }
 
 function getEditorValue() {
+  if (state.editorMode === "writing" && state.currentExtension === ".tex") {
+    return writingToTex();
+  }
+
   return editor.getValue();
 }
 
 function setMode(mode) {
+  if (mode === state.editorMode) return;
+  if (mode === "writing" && state.currentExtension !== ".tex") {
+    setStatus("Writing mode is available for .tex files.", true);
+    return;
+  }
+
+  if (state.editorMode === "writing" && state.currentExtension === ".tex") {
+    setEditorValue(writingToTex());
+  }
+
   state.editorMode = mode;
   const writing = mode === "writing";
   els.sourceMode.classList.toggle("active", !writing);
   els.writingMode.classList.toggle("active", writing);
+  els.editorPane.classList.toggle("writing-active", writing);
+  els.foldTex.disabled = writing || state.currentExtension !== ".tex";
   editor.setTheme(writing ? "ace/theme/textmate" : "ace/theme/one_dark");
   editor.setFontSize(writing ? 16 : 14);
   editor.session.setUseWrapMode(true);
 
   if (state.currentExtension === ".tex") {
     if (writing) {
-      foldTexScaffolding();
-      setStatus("Writing mode folded common TeX scaffolding.");
+      renderWritingView(editor.getValue());
+      setStatus("Writing mode is showing the document, not the TeX scaffolding.");
     } else {
       editor.session.unfold();
       setStatus("Source mode shows the full TeX file.");
     }
   }
+}
+
+function commandValue(source, command) {
+  const match = source.match(new RegExp(`\\\\${command}\\s*\\{([^}]*)\\}`));
+  return match ? match[1].trim() : "";
+}
+
+function parseTexForWriting(source) {
+  const beginMatch = source.match(/\\begin\{document\}/);
+  const endMatch = source.match(/\\end\{document\}/);
+  const preambleEnd = beginMatch ? beginMatch.index : source.length;
+  const bodyStart = beginMatch ? beginMatch.index + beginMatch[0].length : 0;
+  const bodyEnd = endMatch ? endMatch.index : source.length;
+  const preamble = source.slice(0, preambleEnd).trimEnd();
+  const body = source.slice(bodyStart, bodyEnd).trim();
+  const lines = body.split(/\r?\n/);
+  const blocks = [];
+  let paragraph = [];
+
+  const flushParagraph = () => {
+    const text = paragraph.join("\n").trim();
+    if (text) blocks.push({ type: "paragraph", text });
+    paragraph = [];
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const trimmed = line.trim();
+    if (!trimmed || trimmed === "\\maketitle") {
+      flushParagraph();
+      continue;
+    }
+
+    const heading = trimmed.match(/^\\(section|subsection|subsubsection)\*?\{([^}]*)\}/);
+    if (heading) {
+      flushParagraph();
+      blocks.push({ type: heading[1], text: heading[2].trim() });
+      continue;
+    }
+
+    if (trimmed === "\\[") {
+      flushParagraph();
+      const mathLines = [];
+      index += 1;
+      while (index < lines.length && lines[index].trim() !== "\\]") {
+        mathLines.push(lines[index]);
+        index += 1;
+      }
+      blocks.push({ type: "math", text: mathLines.join("\n").trimEnd() });
+      continue;
+    }
+
+    paragraph.push(line);
+  }
+
+  flushParagraph();
+
+  return {
+    preamble,
+    title: commandValue(source, "title"),
+    author: commandValue(source, "author"),
+    date: commandValue(source, "date"),
+    blocks
+  };
+}
+
+function editableBlock(className, type, text) {
+  const block = document.createElement("div");
+  block.className = `writing-block ${className}`;
+  block.dataset.type = type;
+  block.contentEditable = "true";
+  block.spellcheck = true;
+  block.textContent = text;
+  return block;
+}
+
+function renderWritingView(source) {
+  state.texDraft = parseTexForWriting(source);
+  els.writingEditor.innerHTML = "";
+
+  els.writingEditor.append(
+    editableBlock("writing-title", "title", state.texDraft.title || "Untitled"),
+    editableBlock("writing-meta", "author", state.texDraft.author || "Author"),
+    editableBlock("writing-meta", "date", state.texDraft.date || "\\today")
+  );
+
+  for (const block of state.texDraft.blocks) {
+    if (block.type === "section") {
+      els.writingEditor.append(editableBlock("writing-section", "section", block.text));
+    } else if (block.type === "subsection" || block.type === "subsubsection") {
+      els.writingEditor.append(editableBlock("writing-subsection", block.type, block.text));
+    } else if (block.type === "math") {
+      els.writingEditor.append(editableBlock("writing-math", "math", `$$\n${block.text}\n$$`));
+    } else {
+      els.writingEditor.append(editableBlock("writing-paragraph", "paragraph", block.text));
+    }
+  }
+
+  if (state.texDraft.blocks.length === 0) {
+    const placeholder = editableBlock("writing-paragraph writing-placeholder", "paragraph", "Start writing...");
+    els.writingEditor.append(placeholder);
+  }
+}
+
+function texEscapeHeading(text) {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function mathFromWriting(text) {
+  let math = text.trim();
+  if (math.startsWith("$$")) math = math.slice(2);
+  if (math.endsWith("$$")) math = math.slice(0, -2);
+  return math.trim();
+}
+
+function blockToTex(block) {
+  const type = block.dataset.type;
+  const text = block.innerText.trim();
+  if (!text) return "";
+
+  if (type === "section") return `\\section{${texEscapeHeading(text)}}`;
+  if (type === "subsection") return `\\subsection{${texEscapeHeading(text)}}`;
+  if (type === "subsubsection") return `\\subsubsection{${texEscapeHeading(text)}}`;
+  if (type === "math") return `\\[\n${mathFromWriting(text)}\n\\]`;
+  if (type === "paragraph") return text;
+  return "";
+}
+
+function replaceOrAddCommand(preamble, command, value) {
+  const line = `\\${command}{${value.trim()}}`;
+  const pattern = new RegExp(`\\\\${command}\\s*\\{[^}]*\\}`);
+  if (pattern.test(preamble)) return preamble.replace(pattern, line);
+  return `${preamble.trimEnd()}\n${line}`;
+}
+
+function writingToTex() {
+  const draft = state.texDraft || parseTexForWriting(editor.getValue());
+  const blocks = Array.from(els.writingEditor.querySelectorAll(".writing-block"));
+  const title = blocks.find((block) => block.dataset.type === "title")?.innerText.trim() || "Untitled";
+  const author = blocks.find((block) => block.dataset.type === "author")?.innerText.trim() || "";
+  const date = blocks.find((block) => block.dataset.type === "date")?.innerText.trim() || "\\today";
+  let preamble = draft.preamble || "\\documentclass{article}";
+
+  preamble = replaceOrAddCommand(preamble, "title", title);
+  preamble = replaceOrAddCommand(preamble, "author", author);
+  preamble = replaceOrAddCommand(preamble, "date", date);
+
+  const body = blocks
+    .filter((block) => !["title", "author", "date"].includes(block.dataset.type))
+    .map(blockToTex)
+    .filter(Boolean)
+    .join("\n\n");
+
+  return `${preamble.trimEnd()}\n\n\\begin{document}\n\\maketitle\n\n${body}\n\n\\end{document}\n`;
 }
 
 function leadingCommand(line) {
@@ -250,6 +426,7 @@ async function openWorkspace() {
     els.fileName.textContent = "No file selected";
     els.filePath.textContent = "Choose a .tex, .bib, .sty, or .cls file from the tree.";
     setEditorValue("");
+    els.writingEditor.innerHTML = "";
     els.saveFile.disabled = true;
     els.compileFile.disabled = true;
     els.foldTex.disabled = true;
@@ -293,9 +470,9 @@ async function openFile(filePath) {
     els.filePath.textContent = file.filePath;
     els.saveFile.disabled = false;
     els.compileFile.disabled = file.extension !== ".tex";
-    els.foldTex.disabled = file.extension !== ".tex";
+    els.foldTex.disabled = file.extension !== ".tex" || state.editorMode === "writing";
     setDirty(false);
-    if (state.editorMode === "writing" && file.extension === ".tex") foldTexScaffolding();
+    if (state.editorMode === "writing" && file.extension === ".tex") renderWritingView(file.content);
     renderWorkspaceTree();
     setStatus("File opened.");
   } catch (error) {
@@ -307,11 +484,16 @@ async function saveFile() {
   if (!state.currentFile) return;
 
   try {
+    const content = getEditorValue();
     await window.texSidecar.saveFile({
       rootPath: state.rootPath,
       filePath: state.currentFile,
-      content: getEditorValue()
+      content
     });
+    if (state.editorMode === "writing" && state.currentExtension === ".tex") {
+      setEditorValue(content);
+      renderWritingView(content);
+    }
     setDirty(false);
     setStatus("Saved.");
   } catch (error) {
@@ -372,7 +554,12 @@ els.toggleSidebar.addEventListener("click", () => {
 });
 
 editor.session.on("change", () => {
+  if (state.suppressChange) return;
   if (state.currentFile) setDirty(true);
+});
+
+els.writingEditor.addEventListener("input", () => {
+  if (state.currentFile && state.editorMode === "writing") setDirty(true);
 });
 
 window.addEventListener("keydown", (event) => {
