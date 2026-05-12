@@ -1,5 +1,6 @@
 const { app, BrowserWindow, dialog, ipcMain } = require("electron");
 const { spawn } = require("node:child_process");
+const nodeFs = require("node:fs");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
@@ -31,6 +32,8 @@ const TEXT_EXTENSIONS = new Set([
 
 let mainWindow;
 let initialTargetPromise = null;
+let rendererWatcher = null;
+let rendererReloadTimer = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -49,6 +52,7 @@ function createWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
+  watchRendererForDevReload();
 }
 
 app.whenReady().then(createWindow);
@@ -85,6 +89,26 @@ async function pathExists(filePath) {
 function cliTargetArg() {
   const args = process.argv.slice(process.defaultApp ? 2 : 1);
   return args.find((arg) => !arg.startsWith("-")) || null;
+}
+
+function watchRendererForDevReload() {
+  if (process.env.TEX_SIDECAR_DEV_RELOAD !== "1" || rendererWatcher) return;
+
+  const rendererPath = path.join(__dirname, "renderer");
+  rendererWatcher = nodeFs.watch(rendererPath, { recursive: true }, (_eventType, filename) => {
+    if (!filename || !/\.(css|html|js)$/.test(filename)) return;
+
+    clearTimeout(rendererReloadTimer);
+    rendererReloadTimer = setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.reloadIgnoringCache();
+      }
+    }, 120);
+  });
+
+  rendererWatcher.on("error", (error) => {
+    console.warn("Renderer auto-reload watcher stopped:", error.message);
+  });
 }
 
 async function initialTarget() {

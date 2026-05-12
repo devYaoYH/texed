@@ -27,6 +27,8 @@ npm run dev -- examples/sample/main.tex
 npm run dev -- examples/sample
 ```
 
+During `npm run dev`, edits to files in `src/renderer` auto-reload the open app window. Changes to `src/main.cjs`, `src/preload.cjs`, dependencies, or package metadata still require stopping and restarting the dev process.
+
 The app uses the local TeX installation through `latexmk`, so macOS users should install a TeX distribution such as TinyTeX, MacTeX, or BasicTeX before compiling documents.
 
 ## Package
