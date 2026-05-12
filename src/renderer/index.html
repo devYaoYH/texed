@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TeX Sidecar</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <header class="sidebar-header">
+          <button class="icon-button" id="toggle-sidebar" title="Collapse file tree" aria-label="Collapse file tree">
+            <span id="toggle-sidebar-icon">[</span>
+          </button>
+          <button class="text-button" id="open-folder">Open Folder</button>
+        </header>
+        <div class="workspace-label" id="workspace-label">No folder open</div>
+        <nav class="file-tree" id="file-tree" aria-label="Workspace file tree"></nav>
+      </aside>
+
+      <main class="workbench">
+        <header class="topbar">
+          <div class="file-meta">
+            <div class="file-name" id="file-name">Untitled workspace</div>
+            <div class="file-path" id="file-path">Open a folder, then choose a .tex file.</div>
+          </div>
+          <div class="actions">
+            <button class="icon-button" id="refresh-tree" title="Refresh file tree" aria-label="Refresh file tree">R</button>
+            <button class="text-button" id="save-file" disabled>Save</button>
+            <button class="text-button primary" id="compile-file" disabled>Compile PDF</button>
+          </div>
+        </header>
+
+        <section class="split-view">
+          <section class="editor-pane" aria-label="TeX editor">
+            <textarea id="editor" spellcheck="false" placeholder="Open a .tex file to start editing."></textarea>
+          </section>
+          <section class="preview-pane" aria-label="PDF preview">
+            <div class="preview-empty" id="preview-empty">
+              <strong>PDF preview</strong>
+              <span>Compile a TeX file to render the generated PDF here.</span>
+            </div>
+            <iframe id="pdf-frame" title="Generated PDF preview"></iframe>
+          </section>
+        </section>
+
+        <footer class="statusbar" id="statusbar">Ready.</footer>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
