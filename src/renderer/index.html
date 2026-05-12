@@ -28,7 +28,7 @@
           <div class="actions">
             <div class="segmented-control" aria-label="Editor mode">
               <button class="segment active" id="source-mode" type="button">Source</button>
-              <button class="segment" id="writing-mode" type="button">Writing</button>
+              <button class="segment" id="writing-mode" type="button" disabled>Writing</button>
             </div>
             <button class="text-button" id="fold-tex" title="Fold TeX scaffolding" aria-label="Fold TeX scaffolding" disabled>Fold</button>
             <button class="text-button" id="refresh-tree" title="Refresh file tree" aria-label="Refresh file tree">Refresh</button>
@@ -62,6 +62,7 @@
         <footer class="statusbar" id="statusbar">Ready.</footer>
       </main>
     </div>
+    <div class="version-label" id="version-label">v... - ...</div>
 
     <script src="../../node_modules/ace-builds/src-min-noconflict/ace.js"></script>
     <script src="../../node_modules/ace-builds/src-min-noconflict/ext-searchbox.js"></script>

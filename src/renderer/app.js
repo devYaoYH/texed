@@ -37,6 +37,7 @@ const els = {
   sourceMode: document.querySelector("#source-mode"),
   writingMode: document.querySelector("#writing-mode"),
   fileTree: document.querySelector("#file-tree"),
+  versionLabel: document.querySelector("#version-label"),
   workspaceLabel: document.querySelector("#workspace-label"),
   fileName: document.querySelector("#file-name"),
   filePath: document.querySelector("#file-path"),
@@ -147,6 +148,7 @@ function loadWorkspace(workspace, message = "Workspace opened.") {
   els.saveFile.disabled = true;
   els.compileFile.disabled = true;
   els.foldTex.disabled = true;
+  els.writingMode.disabled = true;
   setDirty(false);
   renderWorkspaceTree();
   setStatus(message);
@@ -183,6 +185,7 @@ function setMode(mode) {
   const writing = mode === "writing";
   els.sourceMode.classList.toggle("active", !writing);
   els.writingMode.classList.toggle("active", writing);
+  els.writingMode.disabled = state.currentExtension !== ".tex";
   els.editorPane.classList.toggle("writing-active", writing);
   els.foldTex.disabled = writing || state.currentExtension !== ".tex";
   editor.setTheme(writing ? "ace/theme/textmate" : "ace/theme/one_dark");
@@ -197,6 +200,15 @@ function setMode(mode) {
       editor.session.unfold();
       setStatus("Source mode shows the full TeX file.");
     }
+  }
+}
+
+async function loadVersionInfo() {
+  try {
+    const info = await window.texSidecar.versionInfo();
+    els.versionLabel.textContent = `v${info.version} - ${info.hash}`;
+  } catch {
+    els.versionLabel.textContent = "vunknown - unknown";
   }
 }
 
@@ -597,12 +609,14 @@ async function openFile(filePath) {
     state.currentFile = file.filePath;
     state.currentExtension = file.extension;
     state.selectedPath = file.filePath;
+    if (file.extension !== ".tex") setMode("source");
     setEditorValue(file.content);
     editor.session.setMode(file.extension === ".tex" ? "ace/mode/latex" : "ace/mode/text");
     els.filePath.textContent = file.filePath;
     els.saveFile.disabled = false;
     els.compileFile.disabled = file.extension !== ".tex";
     els.foldTex.disabled = file.extension !== ".tex" || state.editorMode === "writing";
+    els.writingMode.disabled = file.extension !== ".tex";
     setDirty(false);
     if (state.editorMode === "writing" && file.extension === ".tex") renderWritingView(file.content);
     renderWorkspaceTree();
@@ -712,3 +726,4 @@ window.addEventListener("keydown", (event) => {
 });
 
 openInitialTarget();
+loadVersionInfo();

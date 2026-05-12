@@ -4,6 +4,7 @@ const nodeFs = require("node:fs");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
+const packageJson = require("../package.json");
 
 const IGNORED_DIRS = new Set([
   ".git",
@@ -180,6 +181,11 @@ function runCommand(command, args, cwd) {
   });
 }
 
+async function gitShortHash() {
+  const result = await runCommand("git", ["rev-parse", "--short", "HEAD"], path.join(__dirname, ".."));
+  return result.ok ? result.stdout.trim() : "unknown";
+}
+
 ipcMain.handle("workspace:open", async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: "Open TeX Workspace",
@@ -204,6 +210,11 @@ ipcMain.handle("app:initialTarget", async () => {
 
   return initialTargetPromise;
 });
+
+ipcMain.handle("app:versionInfo", async () => ({
+  version: packageJson.version,
+  hash: await gitShortHash()
+}));
 
 ipcMain.handle("workspace:tree", async (_event, rootPath) => {
   return readTree(rootPath);

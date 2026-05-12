@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("texSidecar", {
   initialTarget: () => ipcRenderer.invoke("app:initialTarget"),
+  versionInfo: () => ipcRenderer.invoke("app:versionInfo"),
   openWorkspace: () => ipcRenderer.invoke("workspace:open"),
   refreshTree: (rootPath) => ipcRenderer.invoke("workspace:tree", rootPath),
   readFile: (payload) => ipcRenderer.invoke("file:read", payload),
